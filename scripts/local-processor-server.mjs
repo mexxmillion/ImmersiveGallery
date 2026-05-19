@@ -14,6 +14,7 @@ const localRoot = path.join(root, '.local');
 const jobsPath = path.join(localRoot, 'jobs.json');
 const adminPin = process.env.LOCAL_ADMIN_PIN || '';
 const jobs = [];
+let workerActive = false;
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']);
 
@@ -39,6 +40,17 @@ async function loadJobs() {
   if (!(await exists(jobsPath))) return;
   const stored = JSON.parse(await readFile(jobsPath, 'utf8'));
   jobs.splice(0, jobs.length, ...stored);
+  let changed = false;
+  for (const job of jobs) {
+    if (job.state === 'running') {
+      job.state = 'failed';
+      job.error = 'Processor restarted while this job was running.';
+      job.progress = 'Interrupted';
+      job.finishedAt = new Date().toISOString();
+      changed = true;
+    }
+  }
+  if (changed) await saveJobs();
 }
 
 async function setJob(job, patch) {
@@ -280,6 +292,20 @@ async function processJob(job) {
   }
 }
 
+async function drainQueue() {
+  if (workerActive) return;
+  workerActive = true;
+  try {
+    while (true) {
+      const job = [...jobs].reverse().find((item) => item.state === 'queued');
+      if (!job) break;
+      await processJob(job);
+    }
+  } finally {
+    workerActive = false;
+  }
+}
+
 async function handleUpload(req, res, url) {
   const filename = req.headers['x-filename'] || 'image.jpg';
   const ext = path.extname(String(filename)).toLowerCase();
@@ -314,7 +340,7 @@ async function handleUpload(req, res, url) {
   jobs.unshift(job);
   await saveJobs();
   send(res, 200, { job });
-  processJob(job);
+  drainQueue();
 }
 
 const server = createServer(async (req, res) => {
@@ -330,7 +356,15 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (req.method === 'GET' && url.pathname === '/health') {
-      send(res, 200, { ok: true, pythonExe, memoryRoot, adminLocked: !!adminPin });
+      send(res, 200, {
+        ok: true,
+        pythonExe,
+        memoryRoot,
+        adminLocked: !!adminPin,
+        workerActive,
+        queued: jobs.filter((job) => job.state === 'queued').length,
+        running: jobs.filter((job) => job.state === 'running').length,
+      });
       return;
     }
     if (req.method === 'POST' && url.pathname === '/admin/unlock') {
@@ -400,6 +434,7 @@ const server = createServer(async (req, res) => {
 });
 
 await loadJobs();
+drainQueue();
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`[prepare-api] http://127.0.0.1:${port}`);
