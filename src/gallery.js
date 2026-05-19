@@ -11,6 +11,8 @@ const state = {
 };
 
 let viewer = null;
+let currentSceneId = null;
+let viewerLoading = false;
 
 function assetUrl(scene) {
   return scene.sog || scene.ply || scene.assetUrl || scene.r2Url;
@@ -57,7 +59,9 @@ function renderShell(app) {
       <div id="viewer-canvas"></div>
       <div class="viewer-bar">
         <button id="close-viewer" type="button">Back</button>
+        <button id="prev-scene" type="button">Prev</button>
         <strong id="viewer-title"></strong>
+        <button id="next-scene" type="button">Next</button>
         <button id="enter-vr" class="hidden" type="button">Enter VR</button>
       </div>
       <div id="viewer-status" class="viewer-status"></div>
@@ -222,21 +226,62 @@ async function closeViewer() {
     viewer.dispose();
     viewer = null;
   }
+  currentSceneId = null;
+  viewerLoading = false;
   document.getElementById('viewer-canvas').innerHTML = '';
   document.getElementById('viewer').classList.add('hidden');
   document.getElementById('enter-vr').classList.add('hidden');
 }
 
+function currentSceneList() {
+  return visibleScenes().filter((scene) => assetUrl(scene));
+}
+
+function sceneIndex(sceneId = currentSceneId) {
+  return currentSceneList().findIndex((scene) => scene.id === sceneId);
+}
+
+function siblingScene(direction) {
+  const scenes = currentSceneList();
+  if (!scenes.length) return null;
+  const index = sceneIndex();
+  const nextIndex = index < 0 ? 0 : (index + direction + scenes.length) % scenes.length;
+  return scenes[nextIndex];
+}
+
+function updateViewerSceneControls() {
+  const scenes = currentSceneList();
+  const canSwap = scenes.length > 1;
+  const prev = document.getElementById('prev-scene');
+  const next = document.getElementById('next-scene');
+  if (prev) prev.disabled = !canSwap || viewerLoading;
+  if (next) next.disabled = !canSwap || viewerLoading;
+}
+
+async function swapViewerScene(direction) {
+  const scene = siblingScene(direction);
+  if (!scene || viewerLoading) return;
+  await openViewer(scene);
+}
+
 async function openViewer(scene) {
-  await closeViewer();
   document.getElementById('viewer').classList.remove('hidden');
   document.getElementById('viewer-title').textContent = scene.title;
   document.getElementById('viewer-status').textContent = 'Loading...';
+  currentSceneId = scene.id;
+  viewerLoading = true;
+  updateViewerSceneControls();
 
   try {
-    viewer = new PcSplatViewer(document.getElementById('viewer-canvas'), (msg) => {
-      document.getElementById('viewer-status').textContent = msg;
-    });
+    if (!viewer) {
+      viewer = new PcSplatViewer(document.getElementById('viewer-canvas'), (msg) => {
+        document.getElementById('viewer-status').textContent = msg;
+      });
+      viewer.setSceneControls({
+        onPrevious: () => swapViewerScene(-1),
+        onNext: () => swapViewerScene(1),
+      });
+    }
     await viewer.load(assetUrl(scene));
     if (viewer.vrSupported) {
       document.getElementById('enter-vr').classList.remove('hidden');
@@ -245,6 +290,9 @@ async function openViewer(scene) {
   } catch (error) {
     console.error(error);
     document.getElementById('viewer-status').textContent = `Could not load ${scene.sog ? 'SOG' : 'PLY'} scene.`;
+  } finally {
+    viewerLoading = false;
+    updateViewerSceneControls();
   }
 }
 
@@ -258,6 +306,8 @@ function wire() {
     renderGallery();
   });
   document.getElementById('close-viewer').addEventListener('click', closeViewer);
+  document.getElementById('prev-scene').addEventListener('click', () => swapViewerScene(-1));
+  document.getElementById('next-scene').addEventListener('click', () => swapViewerScene(1));
   document.getElementById('gallery-admin-toggle').addEventListener('click', async () => {
     if (state.adminMode) {
       state.adminMode = false;

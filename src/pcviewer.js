@@ -14,6 +14,10 @@ export class PcSplatViewer {
     this.rootEl = rootEl;
     this.onStatus = onStatus || (() => {});
     this.splat = null;
+    this.splatAsset = null;
+    this.onNext = null;
+    this.onPrevious = null;
+    this.buttonLatch = new Set();
     this.orbit = { yaw: 0, pitch: 0, dist: START_DIST, target: DESKTOP_RIG.clone() };
     this.rigYaw = 0;
 
@@ -69,15 +73,22 @@ export class PcSplatViewer {
         splat.setLocalEulerAngles(180, 0, 0);
         splat.setLocalPosition(0, 0, 1);
         splat.addComponent('gsplat', { asset });
+        this._clearSplat();
         this.rig.addChild(splat);
         this.splat = splat;
-        this._resetRig(DESKTOP_RIG);
+        this.splatAsset = asset;
+        if (!this.app.xr?.active) this._resetRig(DESKTOP_RIG);
         this.onStatus(this.vrSupported
-          ? 'Drag to orbit. Scroll to zoom. VR is available.'
+          ? 'Drag to orbit. Scroll to zoom. VR is available. In VR, use controller face buttons to swap scenes.'
           : 'Drag to orbit. Scroll to zoom.');
         resolve();
       });
     });
+  }
+
+  setSceneControls({ onPrevious, onNext } = {}) {
+    this.onPrevious = onPrevious || null;
+    this.onNext = onNext || null;
   }
 
   enterVR() {
@@ -97,6 +108,15 @@ export class PcSplatViewer {
     const xr = this.app.xr;
     if (!xr || !xr.active || !xr.input) return;
 
+    const pressedOnce = (key, pressed) => {
+      if (!pressed) {
+        this.buttonLatch.delete(key);
+        return false;
+      }
+      if (this.buttonLatch.has(key)) return false;
+      this.buttonLatch.add(key);
+      return true;
+    };
     const dz = (v) => (Math.abs(v) < STICK_DEADZONE ? 0 : v);
     let dolly = 0;
     let lift = 0;
@@ -115,8 +135,14 @@ export class PcSplatViewer {
       spin += sx;
       if (grip) lift -= sy;
       else dolly += sy;
-      if (b[4] && b[4].pressed) recenter = true;
-      if (b[5] && b[5].pressed) exit = true;
+      if (pressedOnce(`${src.id || src.handedness || 'hand'}-prev`, !!(b[4] && b[4].pressed))) {
+        if (grip) recenter = true;
+        else this.onPrevious?.();
+      }
+      if (pressedOnce(`${src.id || src.handedness || 'hand'}-next`, !!(b[5] && b[5].pressed))) {
+        if (grip) exit = true;
+        else this.onNext?.();
+      }
     }
 
     if (recenter) {
@@ -186,7 +212,20 @@ export class PcSplatViewer {
 
   dispose() {
     try { if (this.app.xr && this.app.xr.active) this.app.xr.end(); } catch {}
+    this._clearSplat();
     try { this.app.destroy(); } catch {}
     if (this.canvas.parentNode) this.canvas.parentNode.removeChild(this.canvas);
+  }
+
+  _clearSplat() {
+    if (this.splat) {
+      try { this.splat.destroy(); } catch {}
+      this.splat = null;
+    }
+    if (this.splatAsset) {
+      try { this.app.assets.remove(this.splatAsset); } catch {}
+      try { this.splatAsset.unload(); } catch {}
+      this.splatAsset = null;
+    }
   }
 }
