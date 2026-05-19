@@ -1,0 +1,13 @@
+{
+  "generated": "2026-05-19T00:43:12.160Z",
+  "albums": [
+    {
+      "id": "demo",
+      "title": "Demo Gallery",
+      "status": "published",
+      "cover": "/albums/demo/cover.jpg",
+      "manifest": "/albums/demo/album.json",
+      "sceneCount": 3
+    }
+  ]
+}

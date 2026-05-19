@@ -1,0 +1,10 @@
+{
+  "id": "sample_mountain",
+  "title": "Sample Mountain",
+  "status": "published",
+  "date": "2026-05-16",
+  "thumbnail": "/albums/demo/scenes/sample_mountain/thumb.jpg",
+  "splatCount": 1179648,
+  "sortOrder": 1,
+  "sog": "/albums/demo/scenes/sample_mountain/scene.sog"
+}

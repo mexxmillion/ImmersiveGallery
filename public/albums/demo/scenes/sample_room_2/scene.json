@@ -1,0 +1,10 @@
+{
+  "id": "sample_room_2",
+  "title": "Sample Room 2",
+  "status": "published",
+  "date": "2026-05-17",
+  "thumbnail": "/albums/demo/scenes/sample_room_2/thumb.jpg",
+  "splatCount": 1179648,
+  "sortOrder": 2,
+  "sog": "/albums/demo/scenes/sample_room_2/scene.sog"
+}

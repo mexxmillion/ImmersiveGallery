@@ -1,0 +1,39 @@
+{
+  "id": "demo",
+  "title": "Demo Gallery",
+  "description": "First web-publish test from the local Immersive Memories library",
+  "status": "published",
+  "cover": "/albums/demo/cover.jpg",
+  "scenes": [
+    {
+      "id": "sample_mountain",
+      "title": "Sample Mountain",
+      "status": "published",
+      "date": "2026-05-16",
+      "thumbnail": "/albums/demo/scenes/sample_mountain/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 1,
+      "sog": "/albums/demo/scenes/sample_mountain/scene.sog"
+    },
+    {
+      "id": "sample_room_2",
+      "title": "Sample Room 2",
+      "status": "published",
+      "date": "2026-05-17",
+      "thumbnail": "/albums/demo/scenes/sample_room_2/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 2,
+      "sog": "/albums/demo/scenes/sample_room_2/scene.sog"
+    },
+    {
+      "id": "zimage_res4lyf_hidetail_00070",
+      "title": "Zimage Res4Lyf Hidetail 00070",
+      "status": "published",
+      "date": "2026-05-14",
+      "thumbnail": "/albums/demo/scenes/zimage_res4lyf_hidetail_00070/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 3,
+      "sog": "/albums/demo/scenes/zimage_res4lyf_hidetail_00070/scene.sog"
+    }
+  ]
+}
