@@ -184,6 +184,46 @@
       "splatCount": 1179648,
       "sortOrder": 19,
       "sog": "/albums/demo/scenes/comfyui_14284/scene.sog"
+    },
+    {
+      "id": "flux_00125",
+      "title": "Flux 00125",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/flux_00125/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 20,
+      "sog": "/albums/demo/scenes/flux_00125/scene.sog"
+    },
+    {
+      "id": "flux_00296",
+      "title": "Flux 00296",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/flux_00296/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 21,
+      "sog": "/albums/demo/scenes/flux_00296/scene.sog"
+    },
+    {
+      "id": "106586948_985840875205895_6403122876090322980_n",
+      "title": "106586948 985840875205895 6403122876090322980 n",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/106586948_985840875205895_6403122876090322980_n/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 22,
+      "sog": "/albums/demo/scenes/106586948_985840875205895_6403122876090322980_n/scene.sog"
+    },
+    {
+      "id": "comfyui_30596",
+      "title": "ComfyUI 30596",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/comfyui_30596/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 23,
+      "sog": "/albums/demo/scenes/comfyui_30596/scene.sog"
     }
   ]
 }
