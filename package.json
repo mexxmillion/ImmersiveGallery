@@ -6,16 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "seed": "node scripts/seed-samples.mjs",
-    "convert:sog": "node scripts/convert-sog.mjs"
+    "convert:sog": "node scripts/convert-sog.mjs",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "playcanvas": "^2.18.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.37.1",
     "@playcanvas/splat-transform": "^2.2.0",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "wrangler": "^4.92.0"
   }
 }
