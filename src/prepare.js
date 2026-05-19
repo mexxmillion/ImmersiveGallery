@@ -119,6 +119,7 @@ function renderJobs() {
       <div>
         <span class="status-pill">${htmlEscape(job.state)}</span>
         <p>${htmlEscape(job.error || job.progress || '')}</p>
+        ${job.scene?.sog ? `<p><a class="inline-link" href="/admin">Manage in Control Panel</a></p>` : ''}
       </div>
     </div>
   `).join('');

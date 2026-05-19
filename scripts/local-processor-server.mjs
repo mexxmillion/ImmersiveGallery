@@ -10,6 +10,9 @@ const memoryRoot = process.env.MEMORIES_ROOT || 'E:\\git\\ImmersiveMemories';
 const pythonExe = process.env.SHARP_PYTHON || path.join(memoryRoot, '.venv', 'Scripts', 'python.exe');
 const port = Number(process.env.PREPARE_API_PORT || 5199);
 const uploadsRoot = path.join(root, '.local', 'uploads');
+const localRoot = path.join(root, '.local');
+const jobsPath = path.join(localRoot, 'jobs.json');
+const adminPin = process.env.LOCAL_ADMIN_PIN || '';
 const jobs = [];
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']);
@@ -20,10 +23,34 @@ function send(res, status, data) {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(body),
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type,X-Filename',
+    'Access-Control-Allow-Headers': 'Content-Type,X-Filename,X-Admin-Pin',
     'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
   });
   res.end(body);
+}
+
+async function saveJobs() {
+  await mkdir(localRoot, { recursive: true });
+  const publicJobs = jobs.map(({ imagePath, ...job }) => job);
+  await writeFile(jobsPath, `${JSON.stringify(publicJobs, null, 2)}\n`, 'utf8');
+}
+
+async function loadJobs() {
+  if (!(await exists(jobsPath))) return;
+  const stored = JSON.parse(await readFile(jobsPath, 'utf8'));
+  jobs.splice(0, jobs.length, ...stored);
+}
+
+async function setJob(job, patch) {
+  Object.assign(job, patch);
+  await saveJobs();
+}
+
+function requireAdmin(req, res) {
+  if (!adminPin) return true;
+  if (req.headers['x-admin-pin'] === adminPin) return true;
+  send(res, 401, { error: 'admin unlock required' });
+  return false;
 }
 
 function slugify(value) {
@@ -155,6 +182,19 @@ async function updateSceneStatus(albumId, sceneId, status) {
   return scene;
 }
 
+async function renameScene(albumId, sceneId, title) {
+  const dir = sceneDir(albumId, sceneId);
+  const scenePath = path.join(dir, 'scene.json');
+  if (!(await exists(scenePath))) {
+    throw new Error(`scene not found: ${albumId}/${sceneId}`);
+  }
+  const scene = JSON.parse(await readFile(scenePath, 'utf8'));
+  scene.title = prettyName(title || scene.title || scene.id);
+  await writeFile(scenePath, `${JSON.stringify(scene, null, 2)}\n`, 'utf8');
+  await refreshAlbum(albumId);
+  return scene;
+}
+
 async function deleteScene(albumId, sceneId) {
   const dir = sceneDir(albumId, sceneId);
   if (!(await exists(dir))) {
@@ -165,9 +205,23 @@ async function deleteScene(albumId, sceneId) {
   return { albumId: slugify(albumId), sceneId: slugify(sceneId), deleted: true };
 }
 
+async function gitStatus() {
+  const status = await run('git', ['status', '--short'], { cwd: root });
+  return status.stdout.trim().split(/\r?\n/).filter(Boolean);
+}
+
+async function gitPublish(message) {
+  const msg = String(message || '').trim() || 'Publish gallery updates';
+  await run('git', ['add', 'public/albums'], { cwd: root });
+  const status = await gitStatus();
+  if (!status.length) return { pushed: false, message: 'No public/albums changes to publish.' };
+  await run('git', ['commit', '-m', msg], { cwd: root });
+  await run('git', ['push', 'origin', 'main'], { cwd: root });
+  return { pushed: true, message: msg };
+}
+
 async function processJob(job) {
-  job.state = 'running';
-  job.progress = 'Running SHARP...';
+  await setJob(job, { state: 'running', progress: 'Running SHARP...', startedAt: new Date().toISOString() });
   try {
     const sceneDir = path.join(root, 'public', 'albums', job.albumId, 'scenes', job.sceneId);
     await mkdir(sceneDir, { recursive: true });
@@ -182,18 +236,18 @@ async function processJob(job) {
     ], {
       onLine: (line) => {
         const text = line.trim();
-        if (text) job.progress = text.slice(-240);
+        if (text) setJob(job, { progress: text.slice(-240) });
       },
     });
     const resultLine = py.stdout.trim().split(/\r?\n/).reverse().find((line) => line.trim().startsWith('{'));
     const result = resultLine ? JSON.parse(resultLine) : {};
 
-    job.progress = 'Converting SOG...';
+    await setJob(job, { progress: 'Converting SOG...' });
     await run('npx.cmd', ['splat-transform', '-w', 'scene.ply', 'scene.sog'], {
       cwd: sceneDir,
       onLine: (line) => {
         const text = line.trim();
-        if (text) job.progress = text.slice(-240);
+        if (text) setJob(job, { progress: text.slice(-240) });
       },
     });
     await unlink(path.join(sceneDir, 'scene.ply')).catch(() => {});
@@ -218,15 +272,11 @@ async function processJob(job) {
     await refreshAlbum(job.albumId);
 
     await rm(path.dirname(job.imagePath), { recursive: true, force: true }).catch(() => {});
-    job.progress = 'Ready';
-    job.state = 'done';
-    job.scene = scene;
+    await setJob(job, { progress: 'Ready', state: 'done', scene });
   } catch (error) {
-    job.state = 'failed';
-    job.error = error.message;
-    job.progress = 'Failed';
+    await setJob(job, { state: 'failed', error: error.message, progress: 'Failed' });
   } finally {
-    job.finishedAt = new Date().toISOString();
+    await setJob(job, { finishedAt: new Date().toISOString() });
   }
 }
 
@@ -262,13 +312,14 @@ async function handleUpload(req, res, url) {
     queuedAt: new Date().toISOString(),
   };
   jobs.unshift(job);
+  await saveJobs();
   send(res, 200, { job });
   processJob(job);
 }
 
 const server = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Filename');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Filename,X-Admin-Pin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -279,11 +330,27 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (req.method === 'GET' && url.pathname === '/health') {
-      send(res, 200, { ok: true, pythonExe, memoryRoot });
+      send(res, 200, { ok: true, pythonExe, memoryRoot, adminLocked: !!adminPin });
+      return;
+    }
+    if (req.method === 'POST' && url.pathname === '/admin/unlock') {
+      const pin = req.headers['x-admin-pin'] || '';
+      send(res, pin === adminPin || !adminPin ? 200 : 401, { unlocked: pin === adminPin || !adminPin });
       return;
     }
     if (req.method === 'GET' && url.pathname === '/prepare/jobs') {
       send(res, 200, { jobs: jobs.slice(0, 50) });
+      return;
+    }
+    if (req.method === 'GET' && url.pathname === '/admin/git-status') {
+      if (!requireAdmin(req, res)) return;
+      send(res, 200, { files: await gitStatus() });
+      return;
+    }
+    if (req.method === 'POST' && url.pathname === '/admin/git-publish') {
+      if (!requireAdmin(req, res)) return;
+      const message = url.searchParams.get('message') || 'Publish gallery updates';
+      send(res, 200, await gitPublish(message));
       return;
     }
     if (req.method === 'POST' && url.pathname === '/prepare/upload') {
@@ -291,6 +358,7 @@ const server = createServer(async (req, res) => {
       return;
     }
     if (req.method === 'POST' && url.pathname === '/prepare/archive-scene') {
+      if (!requireAdmin(req, res)) return;
       const scene = await updateSceneStatus(
         url.searchParams.get('albumId'),
         url.searchParams.get('sceneId'),
@@ -300,6 +368,7 @@ const server = createServer(async (req, res) => {
       return;
     }
     if (req.method === 'POST' && url.pathname === '/prepare/publish-scene') {
+      if (!requireAdmin(req, res)) return;
       const scene = await updateSceneStatus(
         url.searchParams.get('albumId'),
         url.searchParams.get('sceneId'),
@@ -308,7 +377,18 @@ const server = createServer(async (req, res) => {
       send(res, 200, { scene });
       return;
     }
+    if (req.method === 'POST' && url.pathname === '/prepare/rename-scene') {
+      if (!requireAdmin(req, res)) return;
+      const scene = await renameScene(
+        url.searchParams.get('albumId'),
+        url.searchParams.get('sceneId'),
+        url.searchParams.get('title'),
+      );
+      send(res, 200, { scene });
+      return;
+    }
     if (req.method === 'DELETE' && url.pathname === '/prepare/scene') {
+      if (!requireAdmin(req, res)) return;
       const result = await deleteScene(url.searchParams.get('albumId'), url.searchParams.get('sceneId'));
       send(res, 200, result);
       return;
@@ -318,6 +398,8 @@ const server = createServer(async (req, res) => {
     send(res, 500, { error: error.message });
   }
 });
+
+await loadJobs();
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`[prepare-api] http://127.0.0.1:${port}`);

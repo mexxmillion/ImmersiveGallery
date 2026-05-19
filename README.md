@@ -245,6 +245,41 @@ This is independent from the ImmersiveMemories UI, but currently reuses its
 installed SHARP environment and model cache so the web publisher does not
 duplicate large dependencies.
 
+### Local Admin Lock
+
+For local destructive controls, start with a PIN:
+
+```powershell
+$env:LOCAL_ADMIN_PIN="change-this"
+npm run prepare:dev
+```
+
+Then open `/admin` and click **Unlock**. Public viewers never see admin controls
+unless they visit the admin route on your local machine and know the PIN. Hosted
+production should use Cloudflare Access + Google OAuth instead.
+
+### Daily Local Publishing Flow
+
+```text
+/prepare
+  drag/drop images
+  watch SHARP -> SOG job status
+
+/admin
+  unlock
+  rename/archive/delete/publish scenes
+  inspect processing queue
+  inspect git changes
+  Commit & Push
+
+Cloudflare
+  redeploys from GitHub
+```
+
+Archive keeps files but hides the scene from the viewer. Delete removes the local
+scene folder. Commit & Push stages `public/albums`, commits it, and pushes to
+`origin/main`.
+
 ## Product Direction
 
 Immersive Gallery should become the hosted web version of the local experience.

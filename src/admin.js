@@ -1,6 +1,8 @@
 import { loadAdminSummary } from './api.js';
 
 const LOCAL_PREPARE_API = 'http://127.0.0.1:5199';
+let unlocked = localStorage.getItem('localAdminUnlocked') === '1';
+let latestSummary = null;
 
 function statusLabel(value) {
   return value ? 'Ready' : 'Not configured';
@@ -17,16 +19,18 @@ function sceneRows(scenes) {
   }
   return scenes.map((scene) => `
     <tr>
-      <td>${scene.title || scene.id}</td>
+      <td>
+        <input class="inline-title" value="${scene.title || scene.id}" data-title-album="${scene.albumId}" data-title-scene="${scene.id}" ${unlocked ? '' : 'disabled'} />
+      </td>
       <td>${scene.albumTitle || scene.albumId || ''}</td>
       <td><span class="status-pill">${scene.status || 'draft'}</span></td>
       <td>${scene.sog || scene.assetKey || ''}</td>
       <td>${scene.splatCount ? `${(scene.splatCount / 1e6).toFixed(1)}M` : ''}</td>
       <td class="row-actions">
         ${scene.status === 'archived'
-          ? `<button type="button" data-action="publish" data-album="${scene.albumId}" data-scene="${scene.id}">Publish</button>`
-          : `<button type="button" data-action="archive" data-album="${scene.albumId}" data-scene="${scene.id}">Archive</button>`}
-        <button type="button" class="danger-inline" data-action="delete" data-album="${scene.albumId}" data-scene="${scene.id}">Delete</button>
+          ? `<button type="button" data-action="publish" data-album="${scene.albumId}" data-scene="${scene.id}" ${unlocked ? '' : 'disabled'}>Publish</button>`
+          : `<button type="button" data-action="archive" data-album="${scene.albumId}" data-scene="${scene.id}" ${unlocked ? '' : 'disabled'}>Archive</button>`}
+        <button type="button" class="danger-inline" data-action="delete" data-album="${scene.albumId}" data-scene="${scene.id}" ${unlocked ? '' : 'disabled'}>Delete</button>
       </td>
     </tr>
   `).join('');
@@ -65,6 +69,7 @@ function renderUploadPanel(summary) {
 }
 
 function renderAdmin(summary) {
+  latestSummary = summary;
   return `
     <header class="topbar admin-topbar">
       <div>
@@ -72,6 +77,7 @@ function renderAdmin(summary) {
         <p>${renderUser(summary.user)} · ${summary.mode || summary.source || 'api'}</p>
       </div>
       <div class="top-actions">
+        <button id="admin-unlock" type="button">${unlocked ? 'Unlocked' : 'Unlock'}</button>
         <a class="nav-link" href="/prepare">Prepare Scenes</a>
         <a class="nav-link" href="/">View Gallery</a>
       </div>
@@ -98,6 +104,28 @@ function renderAdmin(summary) {
           </div>
         </div>
         ${renderUploadPanel(summary)}
+      </section>
+
+      <section class="admin-grid">
+        <section class="admin-card">
+          <div class="card-head">
+            <h2>Processing Queue</h2>
+            <span id="admin-job-count">Checking...</span>
+          </div>
+          <div id="admin-jobs" class="job-list"></div>
+        </section>
+        <section class="admin-card">
+          <div class="card-head">
+            <h2>Publish to Web</h2>
+            <span>GitHub -> Cloudflare</span>
+          </div>
+          <div class="publish-box">
+            <input id="publish-message" value="Publish gallery updates" ${unlocked ? '' : 'disabled'} />
+            <button id="publish-refresh" type="button" ${unlocked ? '' : 'disabled'}>Refresh Status</button>
+            <button id="publish-button" type="button" ${unlocked ? '' : 'disabled'}>Commit & Push</button>
+          </div>
+          <pre id="git-status" class="git-status">Unlock to inspect local publish changes.</pre>
+        </section>
       </section>
 
       <section class="admin-card">
@@ -131,20 +159,136 @@ function renderAdmin(summary) {
 
 async function localSceneAction(action, albumId, sceneId) {
   const params = new URLSearchParams({ albumId, sceneId });
+  const headers = adminHeaders();
   if (action === 'archive') {
-    await fetch(`${LOCAL_PREPARE_API}/prepare/archive-scene?${params}`, { method: 'POST' });
+    await fetch(`${LOCAL_PREPARE_API}/prepare/archive-scene?${params}`, { method: 'POST', headers });
     return;
   }
   if (action === 'publish') {
-    await fetch(`${LOCAL_PREPARE_API}/prepare/publish-scene?${params}`, { method: 'POST' });
+    await fetch(`${LOCAL_PREPARE_API}/prepare/publish-scene?${params}`, { method: 'POST', headers });
     return;
   }
   if (action === 'delete') {
-    await fetch(`${LOCAL_PREPARE_API}/prepare/scene?${params}`, { method: 'DELETE' });
+    await fetch(`${LOCAL_PREPARE_API}/prepare/scene?${params}`, { method: 'DELETE', headers });
   }
 }
 
+function adminHeaders() {
+  const pin = sessionStorage.getItem('localAdminPin') || '';
+  return pin ? { 'X-Admin-Pin': pin } : {};
+}
+
+async function unlock(app) {
+  const pin = prompt('Admin PIN:');
+  if (pin === null) return;
+  const res = await fetch(`${LOCAL_PREPARE_API}/admin/unlock`, {
+    method: 'POST',
+    headers: { 'X-Admin-Pin': pin },
+  });
+  if (!res.ok) {
+    alert('Unlock failed. Check LOCAL_ADMIN_PIN or start npm run prepare:dev.');
+    return;
+  }
+  sessionStorage.setItem('localAdminPin', pin);
+  localStorage.setItem('localAdminUnlocked', '1');
+  unlocked = true;
+  await initAdmin(app);
+}
+
+async function renameScene(albumId, sceneId, title) {
+  const params = new URLSearchParams({ albumId, sceneId, title });
+  const res = await fetch(`${LOCAL_PREPARE_API}/prepare/rename-scene?${params}`, {
+    method: 'POST',
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+async function fetchJobs() {
+  const res = await fetch(`${LOCAL_PREPARE_API}/prepare/jobs`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('jobs unavailable');
+  return (await res.json()).jobs || [];
+}
+
+function renderAdminJobs(jobs) {
+  const count = document.getElementById('admin-job-count');
+  const list = document.getElementById('admin-jobs');
+  if (!count || !list) return;
+  count.textContent = `${jobs.length} total`;
+  if (!jobs.length) {
+    list.innerHTML = '<p class="hint">No local jobs yet.</p>';
+    return;
+  }
+  list.innerHTML = jobs.map((job) => `
+    <div class="job-row ${job.state}">
+      <div>
+        <strong>${job.title || job.sceneId}</strong>
+        <span>${job.albumId} / ${job.sceneId}</span>
+      </div>
+      <div>
+        <span class="status-pill">${job.state}</span>
+        <p>${job.error || job.progress || ''}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function refreshAdminJobs() {
+  try {
+    renderAdminJobs(await fetchJobs());
+  } catch {
+    renderAdminJobs([]);
+    const count = document.getElementById('admin-job-count');
+    if (count) count.textContent = 'processor offline';
+  }
+}
+
+async function refreshGitStatus() {
+  const pre = document.getElementById('git-status');
+  if (!pre || !unlocked) return;
+  const res = await fetch(`${LOCAL_PREPARE_API}/admin/git-status`, { headers: adminHeaders() });
+  if (!res.ok) {
+    pre.textContent = 'Could not read git status. Is prepare:dev running and unlocked?';
+    return;
+  }
+  const data = await res.json();
+  pre.textContent = data.files?.length ? data.files.join('\n') : 'No local publish changes.';
+}
+
+async function publishGit(app) {
+  const msg = document.getElementById('publish-message').value.trim() || 'Publish gallery updates';
+  const res = await fetch(`${LOCAL_PREPARE_API}/admin/git-publish?${new URLSearchParams({ message: msg })}`, {
+    method: 'POST',
+    headers: adminHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    alert(data.error || 'Publish failed.');
+    return;
+  }
+  alert(data.message || 'Publish complete.');
+  await refreshGitStatus();
+  await initAdmin(app);
+}
+
 function wireSceneActions(app) {
+  document.getElementById('admin-unlock')?.addEventListener('click', () => unlock(app));
+  document.getElementById('publish-refresh')?.addEventListener('click', refreshGitStatus);
+  document.getElementById('publish-button')?.addEventListener('click', () => publishGit(app));
+
+  for (const input of app.querySelectorAll('[data-title-scene]')) {
+    input.addEventListener('change', async () => {
+      if (!unlocked) return;
+      try {
+        await renameScene(input.dataset.titleAlbum, input.dataset.titleScene, input.value);
+        await initAdmin(app);
+      } catch (error) {
+        console.error(error);
+        alert('Could not rename scene.');
+      }
+    });
+  }
+
   for (const button of app.querySelectorAll('[data-action]')) {
     button.addEventListener('click', async () => {
       const action = button.dataset.action;
@@ -170,4 +314,6 @@ export async function initAdmin(app) {
   const summary = await loadAdminSummary();
   app.innerHTML = renderAdmin(summary);
   wireSceneActions(app);
+  refreshAdminJobs();
+  refreshGitStatus();
 }

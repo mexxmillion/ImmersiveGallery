@@ -415,6 +415,33 @@ th {
   color: #ffb4a4;
 }
 
+.inline-title {
+  width: min(320px, 100%);
+}
+
+.publish-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  padding: 18px;
+}
+
+.git-status {
+  min-height: 90px;
+  margin: 0 18px 18px;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #0f0f0d;
+  color: #d8d0bf;
+  white-space: pre-wrap;
+}
+
+.inline-link {
+  color: #ead18f;
+}
+
 .job-row p {
   margin: 6px 0 0;
   font-size: 0.86rem;
@@ -440,6 +467,7 @@ th {
   .admin-grid,
   .stats-grid,
   .upload-box,
+  .publish-box,
   .prepare-form,
   .file-row,
   .job-row {
