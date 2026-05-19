@@ -123,6 +123,10 @@ main {
   outline: none;
 }
 
+.scene-thumb-wrap {
+  cursor: pointer;
+}
+
 .scene-card img {
   display: block;
   width: 100%;
@@ -147,6 +151,22 @@ main {
   margin: 8px 0 0;
   color: #bdb8aa;
   font-size: 0.88rem;
+}
+
+.card-admin {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.card-admin input {
+  min-width: 0;
+}
+
+.card-admin button {
+  min-height: 36px;
+  padding: 0 10px;
 }
 
 .empty {
@@ -469,6 +489,7 @@ th {
   .upload-box,
   .publish-box,
   .prepare-form,
+  .card-admin,
   .file-row,
   .job-row {
     grid-template-columns: 1fr;

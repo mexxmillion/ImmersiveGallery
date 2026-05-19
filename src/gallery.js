@@ -1,10 +1,13 @@
 import { loadAlbums } from './api.js';
 import { PcSplatViewer } from './pcviewer.js';
 
+const LOCAL_PREPARE_API = 'http://127.0.0.1:5199';
+
 const state = {
   albums: [],
   currentAlbum: null,
   query: '',
+  adminMode: localStorage.getItem('galleryAdminMode') === '1',
 };
 
 let viewer = null;
@@ -23,7 +26,7 @@ function formatCount(n) {
 function visibleScenes() {
   const q = state.query.trim().toLowerCase();
   return (state.currentAlbum?.scenes || [])
-    .filter((scene) => scene.status === 'published')
+    .filter((scene) => state.adminMode || scene.status === 'published')
     .filter((scene) => !q || [
       scene.title,
       scene.id,
@@ -40,6 +43,7 @@ function renderShell(app) {
         <p id="album-subtitle"></p>
       </div>
       <div class="top-actions">
+        <button id="gallery-admin-toggle" type="button">${state.adminMode ? 'Admin On' : 'Admin'}</button>
         <a class="nav-link" href="/prepare">Prepare</a>
         <a class="nav-link" href="/admin">Control Panel</a>
         <input id="search" type="search" placeholder="Search scenes" />
@@ -78,10 +82,13 @@ function sceneCard(scene) {
   card.className = 'scene-card';
   card.tabIndex = 0;
 
+  const wrap = document.createElement('div');
+  wrap.className = 'scene-thumb-wrap';
   const img = document.createElement('img');
   img.src = scene.thumbnail;
   img.alt = scene.title;
   img.loading = 'lazy';
+  wrap.appendChild(img);
 
   const body = document.createElement('div');
   body.className = 'scene-body';
@@ -94,8 +101,9 @@ function sceneCard(scene) {
   meta.textContent = [type, formatCount(scene.splatCount), scene.date].filter(Boolean).join(' · ');
 
   body.append(title, meta);
-  card.append(img, body);
-  card.addEventListener('click', () => openViewer(scene));
+  if (state.adminMode) body.append(adminControls(scene));
+  card.append(wrap, body);
+  wrap.addEventListener('click', () => openViewer(scene));
   card.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -103,6 +111,89 @@ function sceneCard(scene) {
     }
   });
   return card;
+}
+
+function adminControls(scene) {
+  const controls = document.createElement('div');
+  controls.className = 'card-admin';
+
+  const input = document.createElement('input');
+  input.value = scene.title || scene.id;
+  input.title = 'Scene title';
+  input.addEventListener('click', (event) => event.stopPropagation());
+  input.addEventListener('change', async () => {
+    await localSceneAction('rename', scene.albumId || state.currentAlbum.id, scene.id, input.value);
+    await reloadGallery();
+  });
+
+  const archive = document.createElement('button');
+  archive.type = 'button';
+  archive.textContent = scene.status === 'archived' ? 'Publish' : 'Archive';
+  archive.addEventListener('click', async (event) => {
+    event.stopPropagation();
+    await localSceneAction(scene.status === 'archived' ? 'publish' : 'archive', scene.albumId || state.currentAlbum.id, scene.id);
+    await reloadGallery();
+  });
+
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'danger-inline';
+  del.textContent = 'Delete';
+  del.addEventListener('click', async (event) => {
+    event.stopPropagation();
+    if (!confirm(`Delete ${scene.title || scene.id}? This removes the local scene folder.`)) return;
+    await localSceneAction('delete', scene.albumId || state.currentAlbum.id, scene.id);
+    await reloadGallery();
+  });
+
+  controls.append(input, archive, del);
+  return controls;
+}
+
+function adminHeaders() {
+  const pin = sessionStorage.getItem('localAdminPin') || '';
+  return pin ? { 'X-Admin-Pin': pin } : {};
+}
+
+async function unlockAdmin() {
+  const pin = prompt('Admin PIN:');
+  if (pin === null) return;
+  const res = await fetch(`${LOCAL_PREPARE_API}/admin/unlock`, {
+    method: 'POST',
+    headers: { 'X-Admin-Pin': pin },
+  });
+  if (!res.ok) {
+    alert('Unlock failed. Start npm run prepare:dev and check LOCAL_ADMIN_PIN.');
+    return;
+  }
+  sessionStorage.setItem('localAdminPin', pin);
+  localStorage.setItem('galleryAdminMode', '1');
+  state.adminMode = true;
+  document.getElementById('gallery-admin-toggle').textContent = 'Admin On';
+  await reloadGallery();
+}
+
+async function localSceneAction(action, albumId, sceneId, title = '') {
+  const params = new URLSearchParams({ albumId, sceneId, ...(title ? { title } : {}) });
+  const headers = adminHeaders();
+  const routes = {
+    rename: ['POST', '/prepare/rename-scene'],
+    archive: ['POST', '/prepare/archive-scene'],
+    publish: ['POST', '/prepare/publish-scene'],
+    delete: ['DELETE', '/prepare/scene'],
+  };
+  const [method, route] = routes[action];
+  const res = await fetch(`${LOCAL_PREPARE_API}${route}?${params}`, { method, headers });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+async function reloadGallery() {
+  const currentId = state.currentAlbum?.id;
+  const result = await loadAlbums();
+  state.albums = result.albums;
+  state.currentAlbum = state.albums.find((album) => album.id === currentId) || state.albums[0] || null;
+  renderAlbumSelect();
+  renderGallery();
 }
 
 function renderGallery() {
@@ -167,6 +258,16 @@ function wire() {
     renderGallery();
   });
   document.getElementById('close-viewer').addEventListener('click', closeViewer);
+  document.getElementById('gallery-admin-toggle').addEventListener('click', async () => {
+    if (state.adminMode) {
+      state.adminMode = false;
+      localStorage.removeItem('galleryAdminMode');
+      document.getElementById('gallery-admin-toggle').textContent = 'Admin';
+      renderGallery();
+    } else {
+      await unlockAdmin();
+    }
+  });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !document.getElementById('viewer')?.classList.contains('hidden')) closeViewer();
   });
