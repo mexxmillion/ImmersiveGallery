@@ -21,7 +21,7 @@ function send(res, status, data) {
     'Content-Length': Buffer.byteLength(body),
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type,X-Filename',
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
   });
   res.end(body);
 }
@@ -138,6 +138,33 @@ async function refreshAlbum(albumId) {
   );
 }
 
+function sceneDir(albumId, sceneId) {
+  return path.join(root, 'public', 'albums', slugify(albumId), 'scenes', slugify(sceneId));
+}
+
+async function updateSceneStatus(albumId, sceneId, status) {
+  const dir = sceneDir(albumId, sceneId);
+  const scenePath = path.join(dir, 'scene.json');
+  if (!(await exists(scenePath))) {
+    throw new Error(`scene not found: ${albumId}/${sceneId}`);
+  }
+  const scene = JSON.parse(await readFile(scenePath, 'utf8'));
+  scene.status = status;
+  await writeFile(scenePath, `${JSON.stringify(scene, null, 2)}\n`, 'utf8');
+  await refreshAlbum(albumId);
+  return scene;
+}
+
+async function deleteScene(albumId, sceneId) {
+  const dir = sceneDir(albumId, sceneId);
+  if (!(await exists(dir))) {
+    throw new Error(`scene not found: ${albumId}/${sceneId}`);
+  }
+  await rm(dir, { recursive: true, force: true });
+  await refreshAlbum(albumId);
+  return { albumId: slugify(albumId), sceneId: slugify(sceneId), deleted: true };
+}
+
 async function processJob(job) {
   job.state = 'running';
   job.progress = 'Running SHARP...';
@@ -242,7 +269,7 @@ async function handleUpload(req, res, url) {
 const server = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Filename');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
@@ -261,6 +288,29 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/prepare/upload') {
       await handleUpload(req, res, url);
+      return;
+    }
+    if (req.method === 'POST' && url.pathname === '/prepare/archive-scene') {
+      const scene = await updateSceneStatus(
+        url.searchParams.get('albumId'),
+        url.searchParams.get('sceneId'),
+        'archived',
+      );
+      send(res, 200, { scene });
+      return;
+    }
+    if (req.method === 'POST' && url.pathname === '/prepare/publish-scene') {
+      const scene = await updateSceneStatus(
+        url.searchParams.get('albumId'),
+        url.searchParams.get('sceneId'),
+        'published',
+      );
+      send(res, 200, { scene });
+      return;
+    }
+    if (req.method === 'DELETE' && url.pathname === '/prepare/scene') {
+      const result = await deleteScene(url.searchParams.get('albumId'), url.searchParams.get('sceneId'));
+      send(res, 200, result);
       return;
     }
     send(res, 404, { error: 'not found' });
