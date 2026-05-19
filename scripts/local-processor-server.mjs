@@ -225,19 +225,59 @@ async function deleteScene(albumId, sceneId) {
   return { albumId: slugify(albumId), sceneId: slugify(sceneId), deleted: true };
 }
 
+async function gitOut(args) {
+  const result = await run('git', args, { cwd: root });
+  return result.stdout.trim();
+}
+
+async function remoteHead(branch) {
+  try {
+    const remote = await gitOut(['ls-remote', 'origin', `refs/heads/${branch}`]);
+    return (remote.split(/\s+/)[0] || '').slice(0, 12);
+  } catch {
+    return '';
+  }
+}
+
 async function gitStatus() {
-  const status = await run('git', ['status', '--short'], { cwd: root });
-  return status.stdout.trim().split(/\r?\n/).filter(Boolean);
+  const status = await gitOut(['status', '--short']);
+  const branch = await gitOut(['branch', '--show-current']);
+  const commit = await gitOut(['rev-parse', '--short=12', 'HEAD']);
+  const remote = await remoteHead(branch);
+  const files = status.split(/\r?\n/).filter(Boolean);
+  return {
+    branch,
+    commit,
+    remote,
+    clean: files.length === 0,
+    upToDate: Boolean(remote && commit === remote),
+    files,
+  };
 }
 
 async function gitPublish(message) {
   const msg = String(message || '').trim() || 'Publish gallery updates';
   await run('git', ['add', 'public/albums'], { cwd: root });
   const status = await gitStatus();
-  if (!status.length) return { pushed: false, message: 'No public/albums changes to publish.' };
+  if (!status.files.length) {
+    return {
+      pushed: false,
+      message: status.upToDate
+        ? 'No public/albums changes to publish. Local main already matches origin/main.'
+        : 'No public/albums changes to commit. Local main does not match origin/main yet.',
+      status,
+    };
+  }
   await run('git', ['commit', '-m', msg], { cwd: root });
   await run('git', ['push', 'origin', 'main'], { cwd: root });
-  return { pushed: true, message: msg };
+  const nextStatus = await gitStatus();
+  return {
+    pushed: true,
+    message: `Committed and pushed ${nextStatus.commit}.`,
+    commit: nextStatus.commit,
+    remote: nextStatus.remote,
+    status: nextStatus,
+  };
 }
 
 async function processJob(job) {
@@ -395,7 +435,7 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/admin/git-status') {
       if (!requireAdmin(req, res)) return;
-      send(res, 200, { files: await gitStatus() });
+      send(res, 200, { status: await gitStatus() });
       return;
     }
     if (req.method === 'POST' && url.pathname === '/admin/git-publish') {

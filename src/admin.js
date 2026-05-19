@@ -124,6 +124,7 @@ function renderAdmin(summary) {
             <button id="publish-refresh" type="button" ${unlocked ? '' : 'disabled'}>Refresh Status</button>
             <button id="publish-button" type="button" ${unlocked ? '' : 'disabled'}>Commit & Push</button>
           </div>
+          <div id="publish-result" class="publish-result">${unlocked ? 'Ready to commit and push gallery files.' : 'Unlock, then publish when gallery files are ready.'}</div>
           <pre id="git-status" class="git-status">Unlock to inspect local publish changes.</pre>
         </section>
       </section>
@@ -252,23 +253,49 @@ async function refreshGitStatus() {
     return;
   }
   const data = await res.json();
-  pre.textContent = data.files?.length ? data.files.join('\n') : 'No local publish changes.';
+  pre.textContent = formatGitStatus(data.status);
+}
+
+function formatGitStatus(status) {
+  if (!status) return 'Git status unavailable.';
+  const lines = [
+    `Branch: ${status.branch || 'unknown'}`,
+    `Local HEAD: ${status.commit || 'unknown'}`,
+    `Origin HEAD: ${status.remote || 'unknown'}`,
+    `State: ${status.clean ? 'clean' : 'local changes'}${status.upToDate ? ', pushed' : ', not confirmed on origin'}`,
+  ];
+  if (status.files?.length) {
+    lines.push('', 'Files:', ...status.files);
+  } else {
+    lines.push('', 'No local publish changes.');
+  }
+  return lines.join('\n');
+}
+
+function setPublishResult(message, kind = '') {
+  const result = document.getElementById('publish-result');
+  if (!result) return;
+  result.className = `publish-result ${kind}`.trim();
+  result.textContent = message;
 }
 
 async function publishGit(app) {
   const msg = document.getElementById('publish-message').value.trim() || 'Publish gallery updates';
+  setPublishResult('Publishing to GitHub...', '');
   const res = await fetch(`${LOCAL_PREPARE_API}/admin/git-publish?${new URLSearchParams({ message: msg })}`, {
     method: 'POST',
     headers: adminHeaders(),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    alert(data.error || 'Publish failed.');
+    setPublishResult(data.error || 'Publish failed.', 'err');
     return;
   }
-  alert(data.message || 'Publish complete.');
   await refreshGitStatus();
   await initAdmin(app);
+  const status = data.status;
+  const confirmed = status?.upToDate ? ' Remote matches local.' : ' Push finished, but remote was not confirmed yet.';
+  setPublishResult(`${data.message || 'Publish complete.'}${confirmed}`, data.pushed || status?.upToDate ? 'ok' : '');
 }
 
 function wireSceneActions(app) {

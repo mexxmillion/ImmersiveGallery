@@ -446,6 +446,25 @@ th {
   padding: 18px;
 }
 
+.publish-result {
+  margin: 0 18px 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #d8d0bf;
+}
+
+.publish-result.ok {
+  border-color: rgba(122, 211, 154, 0.45);
+  color: #b9edc9;
+}
+
+.publish-result.err {
+  border-color: rgba(234, 112, 92, 0.5);
+  color: #ffb4a4;
+}
+
 .git-status {
   min-height: 90px;
   margin: 0 18px 18px;
