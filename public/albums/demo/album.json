@@ -104,6 +104,86 @@
       "splatCount": 1179648,
       "sortOrder": 10,
       "sog": "/albums/demo/scenes/zimage_res4lyf_hidetail_00021/scene.sog"
+    },
+    {
+      "id": "comfyui_03480",
+      "title": "ComfyUI 03480",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/comfyui_03480/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 12,
+      "sog": "/albums/demo/scenes/comfyui_03480/scene.sog"
+    },
+    {
+      "id": "comfyui_03538",
+      "title": "ComfyUI 03538",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/comfyui_03538/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 13,
+      "sog": "/albums/demo/scenes/comfyui_03538/scene.sog"
+    },
+    {
+      "id": "comfyui_03673",
+      "title": "ComfyUI 03673",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/comfyui_03673/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 14,
+      "sog": "/albums/demo/scenes/comfyui_03673/scene.sog"
+    },
+    {
+      "id": "comfyui_06968",
+      "title": "ComfyUI 06968",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/comfyui_06968/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 15,
+      "sog": "/albums/demo/scenes/comfyui_06968/scene.sog"
+    },
+    {
+      "id": "comfyui_10858",
+      "title": "ComfyUI 10858",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/comfyui_10858/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 16,
+      "sog": "/albums/demo/scenes/comfyui_10858/scene.sog"
+    },
+    {
+      "id": "comfyui_11163",
+      "title": "ComfyUI 11163",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/comfyui_11163/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 17,
+      "sog": "/albums/demo/scenes/comfyui_11163/scene.sog"
+    },
+    {
+      "id": "comfyui_14177",
+      "title": "ComfyUI 14177",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/comfyui_14177/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 18,
+      "sog": "/albums/demo/scenes/comfyui_14177/scene.sog"
+    },
+    {
+      "id": "comfyui_14284",
+      "title": "ComfyUI 14284",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/comfyui_14284/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 19,
+      "sog": "/albums/demo/scenes/comfyui_14284/scene.sog"
     }
   ]
 }
