@@ -224,6 +224,36 @@
       "splatCount": 1179648,
       "sortOrder": 23,
       "sog": "/albums/demo/scenes/comfyui_30596/scene.sog"
+    },
+    {
+      "id": "490030335_18164383513341334_3341988051575716222_n",
+      "title": "490030335 18164383513341334 3341988051575716222 n",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/490030335_18164383513341334_3341988051575716222_n/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 24,
+      "sog": "/albums/demo/scenes/490030335_18164383513341334_3341988051575716222_n/scene.sog"
+    },
+    {
+      "id": "duyqyi5kf4x_05",
+      "title": "DUYQYI5kf4X 05",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/duyqyi5kf4x_05/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 25,
+      "sog": "/albums/demo/scenes/duyqyi5kf4x_05/scene.sog"
+    },
+    {
+      "id": "653489256_17966173323029792_1896658944208606562_n",
+      "title": "653489256 17966173323029792 1896658944208606562 n",
+      "status": "published",
+      "date": "2026-05-19",
+      "thumbnail": "/albums/demo/scenes/653489256_17966173323029792_1896658944208606562_n/thumb.jpg",
+      "splatCount": 1179648,
+      "sortOrder": 26,
+      "sog": "/albums/demo/scenes/653489256_17966173323029792_1896658944208606562_n/scene.sog"
     }
   ]
 }
