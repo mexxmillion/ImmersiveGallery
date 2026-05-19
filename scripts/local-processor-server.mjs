@@ -32,14 +32,21 @@ function send(res, status, data) {
 
 async function saveJobs() {
   await mkdir(localRoot, { recursive: true });
-  const publicJobs = jobs.map(({ imagePath, ...job }) => job);
-  await writeFile(jobsPath, `${JSON.stringify(publicJobs, null, 2)}\n`, 'utf8');
+  await writeFile(jobsPath, `${JSON.stringify(jobs, null, 2)}\n`, 'utf8');
 }
 
 async function loadJobs() {
   if (!(await exists(jobsPath))) return;
   const stored = JSON.parse(await readFile(jobsPath, 'utf8'));
   jobs.splice(0, jobs.length, ...stored);
+  for (const job of jobs) {
+    if (!job.imagePath) {
+      const uploadDir = path.join(uploadsRoot, job.id);
+      const files = await readdir(uploadDir).catch(() => []);
+      const source = files.find((name) => name.startsWith('source.'));
+      if (source) job.imagePath = path.join(uploadDir, source);
+    }
+  }
   let changed = false;
   for (const job of jobs) {
     if (job.state === 'running') {
@@ -92,9 +99,10 @@ async function exists(file) {
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
+    const needsShell = process.platform === 'win32' && /\.(cmd|bat)$/i.test(command);
     const child = spawn(command, args, {
       cwd: options.cwd || root,
-      shell: false,
+      shell: options.shell ?? needsShell,
       env: options.env || process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
@@ -339,8 +347,17 @@ async function handleUpload(req, res, url) {
   };
   jobs.unshift(job);
   await saveJobs();
-  send(res, 200, { job });
+  send(res, 200, { job: publicJob(job) });
   drainQueue();
+}
+
+function publicJob(job) {
+  const { imagePath, ...safe } = job;
+  return safe;
+}
+
+function publicJobs() {
+  return jobs.slice(0, 50).map(publicJob);
 }
 
 const server = createServer(async (req, res) => {
@@ -373,7 +390,7 @@ const server = createServer(async (req, res) => {
       return;
     }
     if (req.method === 'GET' && url.pathname === '/prepare/jobs') {
-      send(res, 200, { jobs: jobs.slice(0, 50) });
+      send(res, 200, { jobs: publicJobs() });
       return;
     }
     if (req.method === 'GET' && url.pathname === '/admin/git-status') {
