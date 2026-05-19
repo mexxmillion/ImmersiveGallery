@@ -10,14 +10,19 @@ permissions, and site management.
 
 ## Current Milestone
 
-This milestone proves the core web path:
+This repo currently includes:
 
 - Static Vite + PlayCanvas gallery app.
 - SOG-first scene loading with WebXR support.
 - Sample album generated from `E:\git\ImmersiveMemories`.
-- Three local PLY scenes converted to bundled `.sog` files.
+- Ten local PLY scenes converted to bundled `.sog` files.
 - HTTPS dev serving for Meta Quest testing.
 - Upload-ready folder structure under `public/albums`.
+- `/admin` control panel UI.
+- Cloudflare Worker API scaffold.
+- D1 schema for users, roles, albums, scenes, permissions, comments, and likes.
+- R2 binding placeholders for future scene asset storage.
+- Cloudflare Access / Google OAuth identity plumbing.
 
 Observed sample compression:
 
@@ -27,7 +32,7 @@ Observed sample compression:
 | `sample_room_2` | 66.1 MB | 11.9 MB |
 | `zimage_res4lyf_hidetail_00070` | 66.1 MB | 11.1 MB |
 
-The current `public/albums` sample payload is about 33 MB for three scenes plus
+The current `public/albums` sample payload is about 106 MB for ten scenes plus
 thumbnails and manifests.
 
 ## Local Test
@@ -83,6 +88,109 @@ asset URLs.
 
 Actual cloud publishing needs your Cloudflare/R2 credentials or an existing
 `rclone` remote. Until then, the repo is locally testable and upload-ready.
+
+## Control Panel
+
+The control panel route is:
+
+```text
+/admin
+```
+
+Before Cloudflare bindings are enabled, it runs in static preview mode and reads
+the existing `public/albums` manifests. After D1/R2/Access are configured, it can
+read from the Worker API.
+
+Local static UI test:
+
+```powershell
+npm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:5174/admin
+```
+
+Worker/API local test:
+
+```powershell
+npm run worker:dev
+```
+
+## Cloudflare Worker Setup
+
+This repo has a Worker entrypoint at `worker/index.js` and a `wrangler.jsonc`
+configured for Workers Static Assets.
+
+Build and deploy:
+
+```powershell
+npm run worker:deploy
+```
+
+Current `wrangler.jsonc` deploys static assets and API routes without D1/R2
+bindings. After creating the Cloudflare resources below, uncomment the D1 and R2
+binding blocks in `wrangler.jsonc`.
+
+### D1
+
+Create the database:
+
+```powershell
+npx wrangler d1 create immersive_gallery
+```
+
+Copy the returned `database_id` into `wrangler.jsonc`, then run:
+
+```powershell
+npm run db:migrate:remote
+```
+
+For local D1 testing:
+
+```powershell
+npm run db:migrate:local
+```
+
+### R2
+
+Create an R2 bucket named:
+
+```text
+immersive-gallery-prod
+```
+
+Then uncomment the `r2_buckets` section in `wrangler.jsonc`.
+
+Initial R2 object convention:
+
+```text
+albums/<album-id>/cover.jpg
+albums/<album-id>/scenes/<scene-id>/thumb.jpg
+albums/<album-id>/scenes/<scene-id>/scene.sog
+```
+
+The current upload UI/API is a scaffold. For the first production pass, SOG
+conversion still happens locally, then final assets are uploaded/synced to R2.
+
+### Google OAuth / Cloudflare Access
+
+In Cloudflare Zero Trust:
+
+1. Add Google as an identity provider.
+2. Create an Access application for the gallery domain.
+3. Allow your admin email and the first few test viewer emails.
+4. Set `ADMIN_EMAILS` in `wrangler.jsonc` or as a Worker environment variable.
+5. Set `ACCESS_TEAM_DOMAIN` to your team domain, for example:
+
+```text
+your-team.cloudflareaccess.com
+```
+
+The Worker checks Cloudflare Access identity and maps configured admin emails to
+the `admin` role. When D1 is enabled, first login creates/updates the user row.
 
 ## Product Direction
 

@@ -1,0 +1,36 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "immersive-gallery",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-04-01",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "vars": {
+    // Comma-separated admin emails, for example:
+    // "ADMIN_EMAILS": "you@gmail.com,friend@gmail.com"
+    "ADMIN_EMAILS": "",
+
+    // Your Zero Trust team domain, for example:
+    // "ACCESS_TEAM_DOMAIN": "your-team.cloudflareaccess.com"
+    "ACCESS_TEAM_DOMAIN": ""
+  }
+
+  // After creating Cloudflare resources, uncomment and fill these bindings:
+  //
+  // ,"d1_databases": [
+  //   {
+  //     "binding": "DB",
+  //     "database_name": "immersive_gallery",
+  //     "database_id": "YOUR_D1_DATABASE_ID"
+  //   }
+  // ],
+  // "r2_buckets": [
+  //   {
+  //     "binding": "GALLERY_BUCKET",
+  //     "bucket_name": "immersive-gallery-prod"
+  //   }
+  // ]
+}

@@ -78,9 +78,22 @@ button {
 
 button:hover,
 input:focus,
-select:focus {
+select:focus,
+.nav-link:hover {
   border-color: #d8b35a;
   outline: none;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: #f4f1e8;
+  text-decoration: none;
+  background: #1d1d19;
 }
 
 main {
@@ -191,6 +204,127 @@ main {
   text-shadow: 0 1px 12px #000;
 }
 
+.admin-topbar p {
+  margin: 6px 0 0;
+  color: #bdb8aa;
+}
+
+.admin-main {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stat,
+.admin-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #1a1a17;
+}
+
+.stat {
+  padding: 18px;
+}
+
+.stat strong {
+  display: block;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.stat span,
+.hint {
+  color: #bdb8aa;
+}
+
+.admin-card {
+  overflow: hidden;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.card-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.card-head span {
+  color: #bdb8aa;
+  font-size: 0.88rem;
+}
+
+.binding-list,
+.upload-box {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.binding-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.upload-box {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+}
+
+.hint {
+  margin: 0;
+  padding: 0 18px 18px;
+  font-size: 0.9rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.92rem;
+}
+
+th {
+  color: #bdb8aa;
+  font-weight: 600;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(216, 179, 90, 0.16);
+  color: #ead18f;
+}
+
 @media (max-width: 720px) {
   .topbar {
     position: static;
@@ -204,6 +338,12 @@ main {
   }
 
   .gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-grid,
+  .stats-grid,
+  .upload-box {
     grid-template-columns: 1fr;
   }
 }

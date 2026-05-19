@@ -7,6 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "worker:dev": "npm run build && wrangler dev",
+    "worker:deploy": "npm run build && wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply immersive_gallery --local",
+    "db:migrate:remote": "wrangler d1 migrations apply immersive_gallery --remote",
     "seed": "node scripts/seed-samples.mjs",
     "convert:sog": "node scripts/convert-sog.mjs"
   },
@@ -16,6 +20,7 @@
   "devDependencies": {
     "@playcanvas/splat-transform": "^2.2.0",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "wrangler": "^4.92.0"
   }
 }

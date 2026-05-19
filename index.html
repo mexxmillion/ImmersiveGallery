@@ -7,31 +7,7 @@
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <h1>Immersive Gallery</h1>
-      <p id="album-subtitle"></p>
-    </div>
-    <div class="top-actions">
-      <input id="search" type="search" placeholder="Search scenes" />
-      <select id="album-select" aria-label="Album"></select>
-    </div>
-  </header>
-
-  <main>
-    <section id="gallery" class="gallery" aria-live="polite"></section>
-  </main>
-
-  <div id="viewer" class="viewer hidden">
-    <div id="viewer-canvas"></div>
-    <div class="viewer-bar">
-      <button id="close-viewer" type="button">Back</button>
-      <strong id="viewer-title"></strong>
-      <button id="enter-vr" class="hidden" type="button">Enter VR</button>
-    </div>
-    <div id="viewer-status" class="viewer-status"></div>
-  </div>
-
+  <div id="app"></div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
