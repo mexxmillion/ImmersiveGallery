@@ -64,6 +64,7 @@ function renderAdmin(summary) {
         <p>${renderUser(summary.user)} · ${summary.mode || summary.source || 'api'}</p>
       </div>
       <div class="top-actions">
+        <a class="nav-link" href="/prepare">Prepare Scenes</a>
         <a class="nav-link" href="/">View Gallery</a>
       </div>
     </header>

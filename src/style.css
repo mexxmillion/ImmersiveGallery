@@ -325,6 +325,86 @@ th {
   color: #ead18f;
 }
 
+.prepare-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px;
+}
+
+.prepare-form label {
+  display: grid;
+  gap: 6px;
+  color: #bdb8aa;
+  font-size: 0.9rem;
+}
+
+.prepare-drop {
+  display: grid;
+  gap: 10px;
+  margin: 0 18px 18px;
+  padding: 30px;
+  border: 1px dashed rgba(255, 255, 255, 0.26);
+  border-radius: 8px;
+  background: #141411;
+  text-align: center;
+}
+
+.prepare-drop.drag {
+  border-color: #d8b35a;
+  background: rgba(216, 179, 90, 0.08);
+}
+
+.prepare-drop span {
+  color: #bdb8aa;
+}
+
+.prepare-drop button {
+  justify-self: center;
+}
+
+.prepare-files,
+.prepare-actions,
+.job-list {
+  display: grid;
+  gap: 10px;
+  padding: 0 18px 18px;
+}
+
+.file-row,
+.job-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #141411;
+}
+
+.file-row span,
+.job-row span,
+.job-row p {
+  color: #bdb8aa;
+}
+
+.job-row {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr);
+}
+
+.job-row strong,
+.job-row span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.job-row p {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 720px) {
   .topbar {
     position: static;
@@ -343,7 +423,10 @@ th {
 
   .admin-grid,
   .stats-grid,
-  .upload-box {
+  .upload-box,
+  .prepare-form,
+  .file-row,
+  .job-row {
     grid-template-columns: 1fr;
   }
 }

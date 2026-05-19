@@ -1,9 +1,15 @@
 import { initAdmin } from './admin.js';
 import { initGallery } from './gallery.js';
+import { initPrepare } from './prepare.js';
 
 const app = document.getElementById('app');
 
-if (location.pathname.startsWith('/admin')) {
+if (location.pathname.startsWith('/prepare')) {
+  initPrepare(app).catch((error) => {
+    console.error(error);
+    app.innerHTML = '<main><div class="empty">Could not load scene preparer.</div></main>';
+  });
+} else if (location.pathname.startsWith('/admin')) {
   initAdmin(app).catch((error) => {
     console.error(error);
     app.innerHTML = '<main><div class="empty">Could not load control panel.</div></main>';

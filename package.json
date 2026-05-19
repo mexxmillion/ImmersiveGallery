@@ -11,6 +11,8 @@
     "worker:deploy": "npm run build && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply immersive_gallery --local",
     "db:migrate:remote": "wrangler d1 migrations apply immersive_gallery --remote",
+    "prepare:api": "node scripts/local-processor-server.mjs",
+    "prepare:dev": "node scripts/prepare-dev.mjs",
     "seed": "node scripts/seed-samples.mjs",
     "convert:sog": "node scripts/convert-sog.mjs"
   },

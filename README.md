@@ -192,6 +192,59 @@ your-team.cloudflareaccess.com
 The Worker checks Cloudflare Access identity and maps configured admin emails to
 the `admin` role. When D1 is enabled, first login creates/updates the user row.
 
+## Local Scene Publisher
+
+For simple single-image publishing, you do not need to ingest into
+ImmersiveMemories first. Use the local publisher:
+
+```powershell
+npm run prepare:dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:5174/prepare
+```
+
+Then drag/drop images. Each image becomes:
+
+```text
+public/albums/<album-id>/scenes/<scene-id>/
+  thumb.jpg
+  scene.sog
+  scene.json
+```
+
+The local publisher does:
+
+1. Save the uploaded image into `.local/uploads`.
+2. Run Apple SHARP locally through the configured Python environment.
+3. Normalize the SHARP PLY.
+4. Convert PLY to bundled SOG with `@playcanvas/splat-transform`.
+5. Delete the temporary PLY.
+6. Refresh `album.json` and `albums/index.json`.
+
+Default processor paths:
+
+```text
+MEMORIES_ROOT=E:\git\ImmersiveMemories
+SHARP_PYTHON=E:\git\ImmersiveMemories\.venv\Scripts\python.exe
+PREPARE_API_PORT=5199
+```
+
+Override them if needed:
+
+```powershell
+$env:MEMORIES_ROOT="E:\git\ImmersiveMemories"
+$env:SHARP_PYTHON="E:\git\ImmersiveMemories\.venv\Scripts\python.exe"
+npm run prepare:dev
+```
+
+This is independent from the ImmersiveMemories UI, but currently reuses its
+installed SHARP environment and model cache so the web publisher does not
+duplicate large dependencies.
+
 ## Product Direction
 
 Immersive Gallery should become the hosted web version of the local experience.

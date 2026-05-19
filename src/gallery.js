@@ -40,6 +40,7 @@ function renderShell(app) {
         <p id="album-subtitle"></p>
       </div>
       <div class="top-actions">
+        <a class="nav-link" href="/prepare">Prepare</a>
         <a class="nav-link" href="/admin">Control Panel</a>
         <input id="search" type="search" placeholder="Search scenes" />
         <select id="album-select" aria-label="Album"></select>
