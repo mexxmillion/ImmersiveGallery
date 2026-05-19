@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-19T00:43:12.160Z",
+  "generated": "2026-05-19T01:14:09.523Z",
   "albums": [
     {
       "id": "demo",
@@ -7,7 +7,7 @@
       "status": "published",
       "cover": "/albums/demo/cover.jpg",
       "manifest": "/albums/demo/album.json",
-      "sceneCount": 3
+      "sceneCount": 10
     }
   ]
 }

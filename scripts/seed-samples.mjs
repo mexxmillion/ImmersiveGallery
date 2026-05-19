@@ -12,6 +12,13 @@ const preferredIds = [
   'sample_mountain',
   'sample_room_2',
   'zimage_res4lyf_hidetail_00070',
+  'comfyui_temp_iupys_00008',
+  'bc6e374e_90e1_4146_984a_1c7f725c8880',
+  '3ae76775_9831_4e67_b6a9_6a7f1bec8e11',
+  '269e896f_919b_4bc0_950a_993587fa3ba8',
+  'zimage_res4lyf_hidetail_00009',
+  'zimage_res4lyf_hidetail_00074',
+  'zimage_res4lyf_hidetail_00021',
 ];
 
 async function exists(file) {
